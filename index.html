@@ -134,6 +134,12 @@
           </div>
 
           <div class="field">
+            <label for="corsProxyTemplate">Optionaler CORS-Proxy / Same-Origin-Proxy</label>
+            <input id="corsProxyTemplate" name="corsProxyTemplate" type="text" placeholder="/api/token-proxy?url={url}" />
+            <small>Falls die Token-Factory kein CORS erlaubt, trage hier einen Proxy ein. Nutze <code>{url}</code> als Platzhalter, z. B. <code>/api/token-proxy?url={url}</code>.</small>
+          </div>
+
+          <div class="field">
             <label for="conferenceUrl">Fallback-Konferenz-URL</label>
             <input id="conferenceUrl" name="conferenceUrl" type="url" value="https://konfernzeserver.de" required />
             <small>Wird nur benutzt, falls die Token-Factory keinen kompletten Link, sondern nur einen JWT zurückliefert.</small>
@@ -264,6 +270,11 @@
             schreibt ihn aber nicht in den Payload. Dieses POC übernimmt deshalb den gleichen
             Payload-Stil und fügt <code>exp</code> standardmäßig nicht ein.
           </p>
+          <p class="helper">
+            Wichtig: Wenn die Token-Factory keine passenden <code>Access-Control-Allow-Origin</code>-Header liefert,
+            blockiert der Browser den Aufruf. Dann brauchst du einen Server-/API-Proxy auf derselben Origin oder die
+            Token-Factory muss CORS freischalten.
+          </p>
 
           <button id="startButton" type="submit">Konferenz starten</button>
         </form>
@@ -355,8 +366,21 @@
         return `${message}.${encodedSignature}`;
       }
 
-      async function exchangeToken(tokenFactoryUrl, initialJwt) {
-        const response = await fetch(tokenFactoryUrl, {
+      function buildExchangeUrl(tokenFactoryUrl, corsProxyTemplate) {
+        const proxyTemplate = corsProxyTemplate.trim();
+        if (!proxyTemplate) {
+          return tokenFactoryUrl;
+        }
+        if (proxyTemplate.includes('{url}')) {
+          return proxyTemplate.replace('{url}', encodeURIComponent(tokenFactoryUrl));
+        }
+        const separator = proxyTemplate.includes('?') ? '&' : '?';
+        return `${proxyTemplate}${separator}url=${encodeURIComponent(tokenFactoryUrl)}`;
+      }
+
+      async function exchangeToken(tokenFactoryUrl, initialJwt, corsProxyTemplate) {
+        const exchangeUrl = buildExchangeUrl(tokenFactoryUrl, corsProxyTemplate);
+        const response = await fetch(exchangeUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -410,7 +434,11 @@
           const expiresAt = Math.floor(Date.now() / 1000) + Number(formData.get('expiresInMinutes')) * 60;
           const payload = buildPayload(formData);
           const initialJwt = await signJwt(payload, formData.get('appSecret').trim());
-          const exchangeResponse = await exchangeToken(formData.get('tokenFactoryUrl').trim(), initialJwt);
+          const exchangeResponse = await exchangeToken(
+            formData.get('tokenFactoryUrl').trim(),
+            initialJwt,
+            formData.get('corsProxyTemplate').trim()
+          );
 
           if (!exchangeResponse) {
             throw new Error('Die Token-Factory hat weder URL noch JWT zurückgegeben.');
@@ -423,7 +451,11 @@
           setStatus('JWT erzeugt, an die Token-Factory gesendet und Konferenz im iFrame geladen.', 'success');
         } catch (error) {
           console.error(error);
-          setStatus(`Fehler: ${error.message}`, 'error');
+          const isLikelyCorsError = error instanceof TypeError && /fetch/i.test(error.message);
+          const errorMessage = isLikelyCorsError
+            ? 'Netzwerk-/CORS-Fehler: Der Browser durfte die Token-Factory nicht lesen. Nutze einen Same-Origin-Proxy oder aktiviere CORS auf der Token-Factory.'
+            : error.message;
+          setStatus(`Fehler: ${errorMessage}`, 'error');
           payloadPreview.textContent = `Fehlerdetails beim Payload-Aufbau:\n${error.stack || error.message}`;
           tokenPreview.textContent = `Fehlerdetails beim Token-Prozess:\n${error.stack || error.message}`;
         } finally {
