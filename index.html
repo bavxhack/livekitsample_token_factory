@@ -3,19 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Videokonferenz POC</title>
+    <title>LiveKit iFrame POC</title>
     <style>
       :root {
         color-scheme: dark;
         --bg: #0f172a;
-        --panel: rgba(15, 23, 42, 0.88);
+        --panel: rgba(15, 23, 42, 0.9);
         --panel-border: rgba(148, 163, 184, 0.24);
         --text: #e2e8f0;
         --muted: #94a3b8;
         --accent: #38bdf8;
         --accent-2: #0ea5e9;
-        --danger: #f87171;
-        --success: #4ade80;
       }
 
       * {
@@ -34,7 +32,7 @@
 
       main {
         display: grid;
-        grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+        grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
         gap: 1.5rem;
         padding: 1.5rem;
       }
@@ -49,6 +47,13 @@
 
       .controls {
         padding: 1.5rem;
+      }
+
+      .viewer {
+        padding: 1rem;
+        display: grid;
+        gap: 1rem;
+        min-height: calc(100vh - 3rem);
       }
 
       h1 {
@@ -81,8 +86,10 @@
         font-weight: 600;
       }
 
-      .field small {
+      .field small,
+      .helper {
         color: var(--muted);
+        line-height: 1.45;
       }
 
       input,
@@ -96,7 +103,7 @@
       }
 
       textarea {
-        min-height: 160px;
+        min-height: 110px;
         resize: vertical;
       }
 
@@ -123,18 +130,16 @@
         transform: none;
       }
 
-      .viewer {
+      .status,
+      pre {
+        margin: 0;
         padding: 1rem;
-        display: grid;
-        gap: 1rem;
-        min-height: calc(100vh - 3rem);
+        border-radius: 16px;
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.18);
       }
 
       .status {
-        padding: 0.9rem 1rem;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.66);
-        border: 1px solid rgba(148, 163, 184, 0.18);
         line-height: 1.5;
         color: var(--muted);
       }
@@ -159,15 +164,16 @@
         background: #020617;
       }
 
-      .token-preview {
-        margin: 0;
-        padding: 1rem;
+      pre {
         overflow: auto;
-        border-radius: 16px;
-        background: rgba(2, 6, 23, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.18);
         color: #cbd5e1;
         font-size: 0.88rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
       @media (max-width: 980px) {
@@ -184,18 +190,18 @@
   <body>
     <main>
       <section class="panel controls">
-        <h1>Videokonferenz im iFrame</h1>
+        <h1>LiveKit-Konferenz im iFrame</h1>
         <p class="intro">
-          Dieses POC erzeugt den ersten JWT direkt im Browser, tauscht ihn über die
-          Token-Factory aus und startet danach die Konferenz mit dem zurückgegebenen
-          JWT im iFrame.
+          Dieses POC baut den JWT exakt im dokumentierten LiveKit-Format, signiert ihn im
+          Browser per <code>HS256</code>, schickt ihn an die Token-Factory und startet
+          danach die Konferenz mit dem zurückgegebenen JWT im iFrame.
         </p>
 
         <form id="conference-form">
           <div class="field">
-            <label for="conferenceUrl">Konferenzserver-URL</label>
+            <label for="conferenceUrl">Konferenz-URL für das iFrame</label>
             <input id="conferenceUrl" name="conferenceUrl" type="url" value="https://konfernzeserver.de" required />
-            <small>Der finale iFrame-Link wird als <code>?jwt=...</code> aufgebaut.</small>
+            <small>Hier wird am Ende automatisch <code>?jwt=...</code> angehängt.</small>
           </div>
 
           <div class="field">
@@ -204,67 +210,89 @@
           </div>
 
           <div class="field">
-            <label for="signingSecret">Frontend-Signing-Secret</label>
-            <input id="signingSecret" name="signingSecret" type="password" value="mein-poc-secret" required />
-            <small>Nur für den POC im Frontend erlaubt.</small>
+            <label for="appId">LiveKit App ID</label>
+            <input id="appId" name="appId" type="text" value="livekit-app-id" required />
           </div>
 
           <div class="field">
-            <label for="displayName">Anzeigename</label>
-            <input id="displayName" name="displayName" type="text" value="POC User" required />
+            <label for="appSecret">LiveKit App Secret</label>
+            <input id="appSecret" name="appSecret" type="password" value="my-secret" required />
+            <small>Nur für diesen POC im Frontend erlaubt.</small>
           </div>
 
           <div class="field">
-            <label for="subject">Subject / User-ID</label>
-            <input id="subject" name="subject" type="text" value="poc-user-1" required />
+            <label for="livekitServerUrl">LiveKit Server URL</label>
+            <input id="livekitServerUrl" name="livekitServerUrl" type="url" value="https://livekit.example.com" required />
           </div>
 
           <div class="field">
-            <label for="roomName">Raum / Konferenz-ID</label>
-            <input id="roomName" name="roomName" type="text" value="demo-room" required />
+            <label for="baseUrl">Plattform Base-URL</label>
+            <input id="baseUrl" name="baseUrl" type="text" value="example.com" required />
+            <small>Wird automatisch von <code>http://</code> bzw. <code>https://</code> bereinigt.</small>
           </div>
 
           <div class="field">
-            <label for="payload">JWT-Payload (JSON)</label>
-            <textarea id="payload" name="payload" spellcheck="false">{
-  "aud": "videoconf-poc",
-  "iss": "frontend-poc",
-  "context": {
-    "user": {
-      "moderator": true
-    }
+            <label for="roomUid">Room UID</label>
+            <input id="roomUid" name="roomUid" type="text" value="room-123" required />
+          </div>
+
+          <div class="field">
+            <label for="roomName">Raumname</label>
+            <input id="roomName" name="roomName" type="text" value="Townhall" required />
+          </div>
+
+          <div class="field">
+            <label for="userName">Benutzername</label>
+            <input id="userName" name="userName" type="text" value="Max Mustermann" required />
+            <small><code>Meetling</code> wird automatisch als leerer String in den Payload geschrieben.</small>
+          </div>
+
+          <div class="field">
+            <label for="avatarUrl">Avatar-URL (optional)</label>
+            <input id="avatarUrl" name="avatarUrl" type="url" value="https://example.com/avatar.jpg" />
+          </div>
+
+          <div class="field">
+            <label for="backgroundImages">Background Images JSON (optional)</label>
+            <textarea id="backgroundImages" name="backgroundImages" spellcheck="false">[
+  {
+    "name": "Office",
+    "src": "https://example.com/office.jpg"
   }
-}</textarea>
-            <small>
-              Die Felder <code>sub</code>, <code>name</code>, <code>room</code>, <code>iat</code>
-              und <code>exp</code> werden automatisch ergänzt bzw. überschrieben.
-            </small>
+]</textarea>
           </div>
+
+          <p class="helper">
+            Die Identity wird automatisch erzeugt im Format
+            <code>meetling_&lt;slug(username)&gt;_&lt;timestamp&gt;_&lt;random&gt;</code>.
+          </p>
 
           <button id="startButton" type="submit">Konferenz starten</button>
         </form>
       </section>
 
       <section class="panel viewer">
-        <div id="status" class="status">Bereit. Bitte Formular ausfüllen und Konferenz starten.</div>
+        <div id="status" class="status">Bereit. Bitte Konfigurationsdaten eintragen und Konferenz starten.</div>
         <iframe
           id="conferenceFrame"
-          title="Videokonferenz"
+          title="LiveKit-Konferenz"
           allow="camera; microphone; fullscreen; display-capture; autoplay"
           referrerpolicy="no-referrer"
         ></iframe>
-        <pre id="tokenPreview" class="token-preview">Noch kein Token erzeugt.</pre>
+        <pre id="payloadPreview">Noch kein Payload erzeugt.</pre>
+        <pre id="tokenPreview">Noch kein Token erzeugt.</pre>
       </section>
     </main>
 
     <script>
       const form = document.getElementById('conference-form');
       const statusBox = document.getElementById('status');
+      const payloadPreview = document.getElementById('payloadPreview');
       const tokenPreview = document.getElementById('tokenPreview');
       const conferenceFrame = document.getElementById('conferenceFrame');
       const startButton = document.getElementById('startButton');
-
       const textEncoder = new TextEncoder();
+      const livekitAwayAvatar = 'https://www3.h2-invent.com/user_away.webp';
 
       const toBase64Url = (input) => {
         const bytes = typeof input === 'string' ? textEncoder.encode(input) : input;
@@ -275,12 +303,73 @@
         return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
       };
 
+      function slugify(value) {
+        return value
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'user';
+      }
+
+      function sanitizeBaseUrl(value) {
+        return value.replace(/^https?:\/\//i, '').replace(/\/+$/g, '');
+      }
+
+      function createIdentity(userName) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const randomBytes = crypto.getRandomValues(new Uint8Array(8));
+        const randomPart = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 8);
+        return `meetling_${slugify(userName)}_${timestamp}_${randomPart}`;
+      }
+
+      function buildLiveKitPayload(formData) {
+        const userName = formData.get('userName').trim();
+        const livekitServerUrl = formData.get('livekitServerUrl').trim();
+        const appId = formData.get('appId').trim();
+        const avatarUrl = formData.get('avatarUrl').trim();
+        const sanitizedBaseUrl = sanitizeBaseUrl(formData.get('baseUrl').trim());
+        const roomUid = formData.get('roomUid').trim();
+        const roomName = formData.get('roomName').trim();
+        const displayUserName = userName === 'Meetling' ? '' : userName;
+        const payload = {
+          aud: 'jitsi_admin',
+          iss: appId,
+          sub: livekitServerUrl,
+          room: `${roomUid}@${sanitizedBaseUrl}`,
+          context: {
+            room: {
+              name: roomName
+            },
+            user: {
+              name: displayUserName,
+              identity: createIdentity(userName)
+            }
+          },
+          livekit: {
+            host: livekitServerUrl,
+            key: appId
+          }
+        };
+
+        if (avatarUrl) {
+          payload.context.user.avatar = avatarUrl;
+          payload.context.user.avatarAway = livekitAwayAvatar;
+        }
+
+        const backgroundImagesRaw = formData.get('backgroundImages').trim();
+        if (backgroundImagesRaw) {
+          payload.backgroundImages = JSON.parse(backgroundImagesRaw);
+        }
+
+        return payload;
+      }
+
       async function signJwt(payload, secret) {
         const header = { alg: 'HS256', typ: 'JWT' };
         const encodedHeader = toBase64Url(JSON.stringify(header));
         const encodedPayload = toBase64Url(JSON.stringify(payload));
         const message = `${encodedHeader}.${encodedPayload}`;
-
         const cryptoKey = await crypto.subtle.importKey(
           'raw',
           textEncoder.encode(secret),
@@ -288,7 +377,6 @@
           false,
           ['sign']
         );
-
         const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, textEncoder.encode(message));
         const encodedSignature = toBase64Url(new Uint8Array(signatureBuffer));
         return `${message}.${encodedSignature}`;
@@ -333,39 +421,30 @@
         event.preventDefault();
         startButton.disabled = true;
         conferenceFrame.removeAttribute('src');
+        payloadPreview.textContent = 'Erzeuge LiveKit-Payload…';
         tokenPreview.textContent = 'Erzeuge initialen JWT…';
-        setStatus('Erzeuge initialen JWT im Browser…');
+        setStatus('Erzeuge den dokumentierten LiveKit-JWT im Browser…');
 
         try {
           const formData = new FormData(form);
-          const now = Math.floor(Date.now() / 1000);
-          const customPayload = JSON.parse(formData.get('payload'));
-          const basePayload = {
-            ...customPayload,
-            sub: formData.get('subject'),
-            name: formData.get('displayName'),
-            room: formData.get('roomName'),
-            iat: now,
-            exp: now + 60 * 60
-          };
+          const payload = buildLiveKitPayload(formData);
+          const initialJwt = await signJwt(payload, formData.get('appSecret').trim());
+          const finalJwt = await exchangeToken(formData.get('tokenFactoryUrl').trim(), initialJwt);
 
-          const initialJwt = await signJwt(basePayload, formData.get('signingSecret'));
-          tokenPreview.textContent = `Initialer JWT:\n${initialJwt}`;
-          setStatus('Initialer JWT erstellt. Tausche Token jetzt über die Token-Factory aus…');
-
-          const finalJwt = await exchangeToken(formData.get('tokenFactoryUrl'), initialJwt);
           if (!finalJwt) {
             throw new Error('Die Token-Factory hat keinen verwendbaren Token zurückgegeben.');
           }
 
-          const iframeUrl = buildConferenceUrl(formData.get('conferenceUrl'), finalJwt);
+          const iframeUrl = buildConferenceUrl(formData.get('conferenceUrl').trim(), finalJwt);
+          payloadPreview.textContent = `LiveKit-Payload:\n${JSON.stringify(payload, null, 2)}`;
           tokenPreview.textContent = `Initialer JWT:\n${initialJwt}\n\nFinaler JWT:\n${finalJwt}\n\nIFrame-URL:\n${iframeUrl}`;
           conferenceFrame.src = iframeUrl;
-          setStatus('Konferenz erfolgreich vorbereitet und im iFrame geladen.', 'success');
+          setStatus('LiveKit-Token erzeugt, getauscht und Konferenz im iFrame geladen.', 'success');
         } catch (error) {
           console.error(error);
           setStatus(`Fehler: ${error.message}`, 'error');
-          tokenPreview.textContent = `Fehlerdetails:\n${error.stack || error.message}`;
+          payloadPreview.textContent = `Fehlerdetails beim Payload-Aufbau:\n${error.stack || error.message}`;
+          tokenPreview.textContent = `Fehlerdetails beim Token-Prozess:\n${error.stack || error.message}`;
         } finally {
           startButton.disabled = false;
         }
