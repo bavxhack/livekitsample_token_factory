@@ -16,10 +16,7 @@
         --accent-2: #0ea5e9;
       }
 
-      * {
-        box-sizing: border-box;
-      }
-
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
@@ -29,14 +26,12 @@
           linear-gradient(180deg, #020617 0%, var(--bg) 100%);
         color: var(--text);
       }
-
       main {
         display: grid;
-        grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+        grid-template-columns: minmax(320px, 460px) minmax(0, 1fr);
         gap: 1.5rem;
         padding: 1.5rem;
       }
-
       .panel {
         background: var(--panel);
         border: 1px solid var(--panel-border);
@@ -44,56 +39,21 @@
         box-shadow: 0 18px 60px rgba(15, 23, 42, 0.35);
         backdrop-filter: blur(12px);
       }
-
-      .controls {
-        padding: 1.5rem;
-      }
-
+      .controls { padding: 1.5rem; }
       .viewer {
         padding: 1rem;
         display: grid;
         gap: 1rem;
         min-height: calc(100vh - 3rem);
       }
-
-      h1 {
-        margin: 0 0 0.75rem;
-        font-size: 1.8rem;
-      }
-
-      p,
-      label,
-      input,
-      textarea,
-      button {
-        font: inherit;
-      }
-
-      .intro {
-        margin: 0 0 1.5rem;
-        color: var(--muted);
-        line-height: 1.5;
-      }
-
-      .field {
-        display: grid;
-        gap: 0.45rem;
-        margin-bottom: 1rem;
-      }
-
-      .field label {
-        font-size: 0.95rem;
-        font-weight: 600;
-      }
-
-      .field small,
-      .helper {
-        color: var(--muted);
-        line-height: 1.45;
-      }
-
-      input,
-      textarea {
+      h1 { margin: 0 0 0.75rem; font-size: 1.8rem; }
+      p, label, input, textarea, button, select { font: inherit; }
+      .intro { margin: 0 0 1.5rem; color: var(--muted); line-height: 1.5; }
+      .field { display: grid; gap: 0.45rem; margin-bottom: 1rem; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .field label { font-size: 0.95rem; font-weight: 600; }
+      .field small, .helper { color: var(--muted); line-height: 1.45; }
+      input, textarea, select {
         width: 100%;
         border: 1px solid rgba(148, 163, 184, 0.28);
         border-radius: 12px;
@@ -101,12 +61,7 @@
         background: rgba(15, 23, 42, 0.75);
         color: var(--text);
       }
-
-      textarea {
-        min-height: 110px;
-        resize: vertical;
-      }
-
+      textarea { min-height: 110px; resize: vertical; }
       button {
         width: 100%;
         border: 0;
@@ -119,43 +74,26 @@
         transition: transform 0.15s ease, box-shadow 0.15s ease;
         box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
       }
-
-      button:hover {
-        transform: translateY(-1px);
-      }
-
-      button:disabled {
-        cursor: wait;
-        opacity: 0.7;
-        transform: none;
-      }
-
-      .status,
-      pre {
+      button:hover { transform: translateY(-1px); }
+      button:disabled { cursor: wait; opacity: 0.7; transform: none; }
+      .status, pre {
         margin: 0;
         padding: 1rem;
         border-radius: 16px;
         background: rgba(2, 6, 23, 0.7);
         border: 1px solid rgba(148, 163, 184, 0.18);
       }
-
-      .status {
-        line-height: 1.5;
-        color: var(--muted);
-      }
-
+      .status { line-height: 1.5; color: var(--muted); }
       .status[data-state='success'] {
         color: #dcfce7;
         border-color: rgba(74, 222, 128, 0.35);
         background: rgba(21, 128, 61, 0.16);
       }
-
       .status[data-state='error'] {
         color: #fee2e2;
         border-color: rgba(248, 113, 113, 0.35);
         background: rgba(153, 27, 27, 0.18);
       }
-
       iframe {
         width: 100%;
         min-height: 72vh;
@@ -163,7 +101,6 @@
         border-radius: 18px;
         background: #020617;
       }
-
       pre {
         overflow: auto;
         color: #cbd5e1;
@@ -171,19 +108,11 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
-
-      code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      }
-
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
       @media (max-width: 980px) {
-        main {
-          grid-template-columns: 1fr;
-        }
-
-        .viewer {
-          min-height: auto;
-        }
+        main { grid-template-columns: 1fr; }
+        .viewer { min-height: auto; }
+        .grid-2 { grid-template-columns: 1fr; gap: 0; }
       }
     </style>
   </head>
@@ -192,79 +121,148 @@
       <section class="panel controls">
         <h1>LiveKit-Konferenz im iFrame</h1>
         <p class="intro">
-          Dieses POC baut den JWT exakt im dokumentierten LiveKit-Format, signiert ihn im
-          Browser per <code>HS256</code>, schickt ihn an die Token-Factory und startet
-          danach die Konferenz mit dem zurückgegebenen JWT im iFrame.
+          Dieses POC folgt jetzt dem von dir gezeigten Bash-Script: Es baut denselben
+          JWT-Header, denselben Payload-Stil, signiert per <code>HS256</code>, sendet
+          <code>{ "token": "..." }</code> an die Token-Factory und akzeptiert als Antwort
+          entweder direkt eine fertige LiveKit-URL oder einen JWT.
         </p>
 
         <form id="conference-form">
           <div class="field">
-            <label for="conferenceUrl">Konferenz-URL für das iFrame</label>
-            <input id="conferenceUrl" name="conferenceUrl" type="url" value="https://konfernzeserver.de" required />
-            <small>Hier wird am Ende automatisch <code>?jwt=...</code> angehängt.</small>
-          </div>
-
-          <div class="field">
             <label for="tokenFactoryUrl">Token-Factory-URL</label>
-            <input id="tokenFactoryUrl" name="tokenFactoryUrl" type="url" value="https://tockendomain.ocm/getToken" required />
+            <input id="tokenFactoryUrl" name="tokenFactoryUrl" type="url" value="https://token.dev07.h2-invent.com/request" required />
           </div>
 
           <div class="field">
-            <label for="appId">LiveKit App ID</label>
-            <input id="appId" name="appId" type="text" value="livekit-app-id" required />
+            <label for="conferenceUrl">Fallback-Konferenz-URL</label>
+            <input id="conferenceUrl" name="conferenceUrl" type="url" value="https://konfernzeserver.de" required />
+            <small>Wird nur benutzt, falls die Token-Factory keinen kompletten Link, sondern nur einen JWT zurückliefert.</small>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="appSecret">HMAC Secret</label>
+              <input id="appSecret" name="appSecret" type="password" value="secret_dev_livekit_meetling_2026" required />
+            </div>
+            <div class="field">
+              <label for="expiresInMinutes">Ablauf in Minuten</label>
+              <input id="expiresInMinutes" name="expiresInMinutes" type="number" min="1" value="60" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="livekitHost">LiveKit Host</label>
+              <input id="livekitHost" name="livekitHost" type="text" value="livekit-rtc.dev04.h2-invent.com" required />
+            </div>
+            <div class="field">
+              <label for="livekitKey">LiveKit Key</label>
+              <input id="livekitKey" name="livekitKey" type="text" value="key1" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="roomName">Raum</label>
+              <input id="roomName" name="roomName" type="text" value="test_aho" required />
+            </div>
+            <div class="field">
+              <label for="roomDisplayName">Anzeigename des Raums</label>
+              <input id="roomDisplayName" name="roomDisplayName" type="text" value="test_aho" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="userIdentity">Identity</label>
+              <input id="userIdentity" name="userIdentity" type="text" value="andreas_zKeV" required />
+            </div>
+            <div class="field">
+              <label for="userName">Benutzername</label>
+              <input id="userName" name="userName" type="text" value="andreas" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="avatarUrl">Avatar</label>
+              <input id="avatarUrl" name="avatarUrl" type="text" value="/images/poc/Jonathan_Archer_2151.webp" />
+            </div>
+            <div class="field">
+              <label for="avatarAwayUrl">Avatar Away</label>
+              <input id="avatarAwayUrl" name="avatarAwayUrl" type="url" value="https://reimar.rocks/captains/Spock_away.jpg" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="skipLobby">skipLobby</label>
+              <select id="skipLobby" name="skipLobby">
+                <option value="false" selected>false</option>
+                <option value="true">true</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="moderator">moderator</label>
+              <select id="moderator" name="moderator">
+                <option value="true" selected>true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="isMicrophoneEnabled">Mikrofon aktiv</label>
+              <select id="isMicrophoneEnabled" name="isMicrophoneEnabled">
+                <option value="false" selected>false</option>
+                <option value="true">true</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="isCameraEnabled">Kamera aktiv</label>
+              <select id="isCameraEnabled" name="isCameraEnabled">
+                <option value="false" selected>false</option>
+                <option value="true">true</option>
+              </select>
+            </div>
           </div>
 
           <div class="field">
-            <label for="appSecret">LiveKit App Secret</label>
-            <input id="appSecret" name="appSecret" type="password" value="my-secret" required />
-            <small>Nur für diesen POC im Frontend erlaubt.</small>
+            <label for="dialInNumbers">Dial-In Nummern JSON</label>
+            <textarea id="dialInNumbers" name="dialInNumbers" spellcheck="false">{
+  "DE": 41153.7,
+  "CH": 2371.5
+}</textarea>
           </div>
 
           <div class="field">
-            <label for="livekitServerUrl">LiveKit Server URL</label>
-            <input id="livekitServerUrl" name="livekitServerUrl" type="url" value="https://livekit.example.com" required />
+            <label for="dialInPin">Dial-In PIN</label>
+            <input id="dialInPin" name="dialInPin" type="number" value="42" />
           </div>
 
           <div class="field">
-            <label for="baseUrl">Plattform Base-URL</label>
-            <input id="baseUrl" name="baseUrl" type="text" value="example.com" required />
-            <small>Wird automatisch von <code>http://</code> bzw. <code>https://</code> bereinigt.</small>
-          </div>
-
-          <div class="field">
-            <label for="roomUid">Room UID</label>
-            <input id="roomUid" name="roomUid" type="text" value="room-123" required />
-          </div>
-
-          <div class="field">
-            <label for="roomName">Raumname</label>
-            <input id="roomName" name="roomName" type="text" value="Townhall" required />
-          </div>
-
-          <div class="field">
-            <label for="userName">Benutzername</label>
-            <input id="userName" name="userName" type="text" value="Max Mustermann" required />
-            <small><code>Meetling</code> wird automatisch als leerer String in den Payload geschrieben.</small>
-          </div>
-
-          <div class="field">
-            <label for="avatarUrl">Avatar-URL (optional)</label>
-            <input id="avatarUrl" name="avatarUrl" type="url" value="https://example.com/avatar.jpg" />
-          </div>
-
-          <div class="field">
-            <label for="backgroundImages">Background Images JSON (optional)</label>
+            <label for="backgroundImages">Background Images JSON</label>
             <textarea id="backgroundImages" name="backgroundImages" spellcheck="false">[
   {
-    "name": "Office",
-    "src": "https://example.com/office.jpg"
+    "description": "Im Wald",
+    "url": "/images/backgrounds/pexels-photo-5248775.jpeg"
+  },
+  {
+    "description": "In den Bergen",
+    "url": "/images/backgrounds/pexels-photo-417173.webp"
+  },
+  {
+    "description": "In der Karibik",
+    "url": "/images/backgrounds/pexels-photo-1450353.webp"
   }
 ]</textarea>
           </div>
 
           <p class="helper">
-            Die Identity wird automatisch erzeugt im Format
-            <code>meetling_&lt;slug(username)&gt;_&lt;timestamp&gt;_&lt;random&gt;</code>.
+            Hinweis: Das Script aus deinem Beispiel berechnet zwar einen Ablaufzeitpunkt,
+            schreibt ihn aber nicht in den Payload. Dieses POC übernimmt deshalb den gleichen
+            Payload-Stil und fügt <code>exp</code> standardmäßig nicht ein.
           </p>
 
           <button id="startButton" type="submit">Konferenz starten</button>
@@ -272,13 +270,8 @@
       </section>
 
       <section class="panel viewer">
-        <div id="status" class="status">Bereit. Bitte Konfigurationsdaten eintragen und Konferenz starten.</div>
-        <iframe
-          id="conferenceFrame"
-          title="LiveKit-Konferenz"
-          allow="camera; microphone; fullscreen; display-capture; autoplay"
-          referrerpolicy="no-referrer"
-        ></iframe>
+        <div id="status" class="status">Bereit. Bitte Daten prüfen und Konferenz starten.</div>
+        <iframe id="conferenceFrame" title="LiveKit-Konferenz" allow="camera; microphone; fullscreen; display-capture; autoplay" referrerpolicy="no-referrer"></iframe>
         <pre id="payloadPreview">Noch kein Payload erzeugt.</pre>
         <pre id="tokenPreview">Noch kein Token erzeugt.</pre>
       </section>
@@ -292,7 +285,6 @@
       const conferenceFrame = document.getElementById('conferenceFrame');
       const startButton = document.getElementById('startButton');
       const textEncoder = new TextEncoder();
-      const livekitAwayAvatar = 'https://www3.h2-invent.com/user_away.webp';
 
       const toBase64Url = (input) => {
         const bytes = typeof input === 'string' ? textEncoder.encode(input) : input;
@@ -303,63 +295,44 @@
         return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
       };
 
-      function slugify(value) {
-        return value
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '') || 'user';
-      }
+      const asBoolean = (value) => value === 'true';
 
-      function sanitizeBaseUrl(value) {
-        return value.replace(/^https?:\/\//i, '').replace(/\/+$/g, '');
-      }
-
-      function createIdentity(userName) {
-        const timestamp = Math.floor(Date.now() / 1000);
-        const randomBytes = crypto.getRandomValues(new Uint8Array(8));
-        const randomPart = Array.from(randomBytes, (byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 8);
-        return `meetling_${slugify(userName)}_${timestamp}_${randomPart}`;
-      }
-
-      function buildLiveKitPayload(formData) {
-        const userName = formData.get('userName').trim();
-        const livekitServerUrl = formData.get('livekitServerUrl').trim();
-        const appId = formData.get('appId').trim();
-        const avatarUrl = formData.get('avatarUrl').trim();
-        const sanitizedBaseUrl = sanitizeBaseUrl(formData.get('baseUrl').trim());
-        const roomUid = formData.get('roomUid').trim();
-        const roomName = formData.get('roomName').trim();
-        const displayUserName = userName === 'Meetling' ? '' : userName;
+      function buildPayload(formData) {
         const payload = {
-          aud: 'jitsi_admin',
-          iss: appId,
-          sub: livekitServerUrl,
-          room: `${roomUid}@${sanitizedBaseUrl}`,
+          livekit: {
+            host: formData.get('livekitHost').trim(),
+            key: formData.get('livekitKey').trim()
+          },
+          room: formData.get('roomName').trim(),
           context: {
-            room: {
-              name: roomName
-            },
             user: {
-              name: displayUserName,
-              identity: createIdentity(userName)
+              identity: formData.get('userIdentity').trim(),
+              name: formData.get('userName').trim(),
+              avatar: formData.get('avatarUrl').trim(),
+              avatarAway: formData.get('avatarAwayUrl').trim(),
+              skipLobby: asBoolean(formData.get('skipLobby'))
+            },
+            room: {
+              name: formData.get('roomDisplayName').trim(),
+              dialIn: {
+                numbers: JSON.parse(formData.get('dialInNumbers').trim()),
+                pin: Number(formData.get('dialInPin'))
+              }
             }
           },
-          livekit: {
-            host: livekitServerUrl,
-            key: appId
-          }
+          settings: {
+            isMicrophoneEnabled: asBoolean(formData.get('isMicrophoneEnabled')),
+            isCameraEnabled: asBoolean(formData.get('isCameraEnabled'))
+          },
+          moderator: asBoolean(formData.get('moderator')),
+          backgroundImages: JSON.parse(formData.get('backgroundImages').trim())
         };
 
-        if (avatarUrl) {
-          payload.context.user.avatar = avatarUrl;
-          payload.context.user.avatarAway = livekitAwayAvatar;
+        if (!payload.context.user.avatar) {
+          delete payload.context.user.avatar;
         }
-
-        const backgroundImagesRaw = formData.get('backgroundImages').trim();
-        if (backgroundImagesRaw) {
-          payload.backgroundImages = JSON.parse(backgroundImagesRaw);
+        if (!payload.context.user.avatarAway) {
+          delete payload.context.user.avatarAway;
         }
 
         return payload;
@@ -400,7 +373,7 @@
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          return data.token || data.jwt || data.accessToken || data.signedToken || '';
+          return data.url || data.redirectUrl || data.link || data.token || data.jwt || data.accessToken || data.signedToken || '';
         }
 
         return (await response.text()).trim();
@@ -412,6 +385,13 @@
         return url.toString();
       }
 
+      function resolveIframeUrl(responseValue, fallbackConferenceUrl) {
+        if (/^https?:\/\//i.test(responseValue)) {
+          return responseValue;
+        }
+        return buildConferenceUrl(fallbackConferenceUrl, responseValue);
+      }
+
       function setStatus(message, state = 'idle') {
         statusBox.dataset.state = state;
         statusBox.textContent = message;
@@ -421,25 +401,26 @@
         event.preventDefault();
         startButton.disabled = true;
         conferenceFrame.removeAttribute('src');
-        payloadPreview.textContent = 'Erzeuge LiveKit-Payload…';
+        payloadPreview.textContent = 'Erzeuge Payload…';
         tokenPreview.textContent = 'Erzeuge initialen JWT…';
-        setStatus('Erzeuge den dokumentierten LiveKit-JWT im Browser…');
+        setStatus('Erzeuge den JWT passend zum Bash-Script…');
 
         try {
           const formData = new FormData(form);
-          const payload = buildLiveKitPayload(formData);
+          const expiresAt = Math.floor(Date.now() / 1000) + Number(formData.get('expiresInMinutes')) * 60;
+          const payload = buildPayload(formData);
           const initialJwt = await signJwt(payload, formData.get('appSecret').trim());
-          const finalJwt = await exchangeToken(formData.get('tokenFactoryUrl').trim(), initialJwt);
+          const exchangeResponse = await exchangeToken(formData.get('tokenFactoryUrl').trim(), initialJwt);
 
-          if (!finalJwt) {
-            throw new Error('Die Token-Factory hat keinen verwendbaren Token zurückgegeben.');
+          if (!exchangeResponse) {
+            throw new Error('Die Token-Factory hat weder URL noch JWT zurückgegeben.');
           }
 
-          const iframeUrl = buildConferenceUrl(formData.get('conferenceUrl').trim(), finalJwt);
-          payloadPreview.textContent = `LiveKit-Payload:\n${JSON.stringify(payload, null, 2)}`;
-          tokenPreview.textContent = `Initialer JWT:\n${initialJwt}\n\nFinaler JWT:\n${finalJwt}\n\nIFrame-URL:\n${iframeUrl}`;
+          const iframeUrl = resolveIframeUrl(exchangeResponse, formData.get('conferenceUrl').trim());
+          payloadPreview.textContent = `Payload wie im Script:\n${JSON.stringify(payload, null, 2)}\n\nBerechnetes EXP (nur Anzeige, nicht im Payload):\n${expiresAt}`;
+          tokenPreview.textContent = `Initialer JWT:\n${initialJwt}\n\nAntwort der Token-Factory:\n${exchangeResponse}\n\nIFrame-URL:\n${iframeUrl}`;
           conferenceFrame.src = iframeUrl;
-          setStatus('LiveKit-Token erzeugt, getauscht und Konferenz im iFrame geladen.', 'success');
+          setStatus('JWT erzeugt, an die Token-Factory gesendet und Konferenz im iFrame geladen.', 'success');
         } catch (error) {
           console.error(error);
           setStatus(`Fehler: ${error.message}`, 'error');
