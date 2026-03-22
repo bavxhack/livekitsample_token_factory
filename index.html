@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LiveKit iFrame POC</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f172a;
+        --panel: rgba(15, 23, 42, 0.9);
+        --panel-border: rgba(148, 163, 184, 0.24);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent-2: #0ea5e9;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, Arial, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(14, 165, 233, 0.18), transparent 28%),
+          linear-gradient(180deg, #020617 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(320px, 460px) minmax(0, 1fr);
+        gap: 1.5rem;
+        padding: 1.5rem;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        box-shadow: 0 18px 60px rgba(15, 23, 42, 0.35);
+        backdrop-filter: blur(12px);
+      }
+      .controls { padding: 1.5rem; }
+      .viewer {
+        padding: 1rem;
+        display: grid;
+        gap: 1rem;
+        min-height: calc(100vh - 3rem);
+      }
+      h1 { margin: 0 0 0.75rem; font-size: 1.8rem; }
+      p, label, input, textarea, button, select { font: inherit; }
+      .intro { margin: 0 0 1.5rem; color: var(--muted); line-height: 1.5; }
+      .field { display: grid; gap: 0.45rem; margin-bottom: 1rem; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .field label { font-size: 0.95rem; font-weight: 600; }
+      .field small, .helper { color: var(--muted); line-height: 1.45; }
+      input, textarea, select {
+        width: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        padding: 0.85rem 0.95rem;
+        background: rgba(15, 23, 42, 0.75);
+        color: var(--text);
+      }
+      textarea { min-height: 110px; resize: vertical; }
+      button {
+        width: 100%;
+        border: 0;
+        border-radius: 14px;
+        padding: 0.95rem 1.1rem;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+      }
+      button:hover { transform: translateY(-1px); }
+      button:disabled { cursor: wait; opacity: 0.7; transform: none; }
+      .status, pre {
+        margin: 0;
+        padding: 1rem;
+        border-radius: 16px;
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+      }
+      .status { line-height: 1.5; color: var(--muted); }
+      .status[data-state='success'] {
+        color: #dcfce7;
+        border-color: rgba(74, 222, 128, 0.35);
+        background: rgba(21, 128, 61, 0.16);
+      }
+      .status[data-state='error'] {
+        color: #fee2e2;
+        border-color: rgba(248, 113, 113, 0.35);
+        background: rgba(153, 27, 27, 0.18);
+      }
+      iframe {
+        width: 100%;
+        min-height: 72vh;
+        border: 0;
+        border-radius: 18px;
+        background: #020617;
+      }
+      pre {
+        overflow: auto;
+        color: #cbd5e1;
+        font-size: 0.88rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      @media (max-width: 980px) {
+        main { grid-template-columns: 1fr; }
+        .viewer { min-height: auto; }
+        .grid-2 { grid-template-columns: 1fr; gap: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel controls">
+        <h1>LiveKit-Konferenz im iFrame</h1>
+        <p class="intro">
+          Dieses POC folgt jetzt dem von dir gezeigten Bash-Script: Es baut denselben
+          JWT-Header, denselben Payload-Stil, signiert per <code>HS256</code>, sendet
+          <code>{ "token": "..." }</code> an die Token-Factory und akzeptiert als Antwort
+          entweder direkt eine fertige LiveKit-URL oder einen JWT.
+        </p>
+
+        <form id="conference-form">
+          <div class="field">
+            <label for="tokenFactoryUrl">Token-Factory-URL</label>
+            <input id="tokenFactoryUrl" name="tokenFactoryUrl" type="url" value="https://token.dev07.h2-invent.com/request" required />
+          </div>
+
+          <div class="field">
+            <label for="corsProxyTemplate">Optionaler CORS-Proxy / Same-Origin-Proxy</label>
+            <input id="corsProxyTemplate" name="corsProxyTemplate" type="text" placeholder="/api/token-proxy?url={url}" />
+            <small>Falls die Token-Factory kein CORS erlaubt, trage hier einen Proxy ein. Nutze <code>{url}</code> als Platzhalter, z. B. <code>/api/token-proxy?url={url}</code>.</small>
+          </div>
+
+          <div class="field">
+            <label for="conferenceUrl">Fallback-Konferenz-URL</label>
+            <input id="conferenceUrl" name="conferenceUrl" type="url" value="https://konfernzeserver.de" required />
+            <small>Wird nur benutzt, falls die Token-Factory keinen kompletten Link, sondern nur einen JWT zurückliefert.</small>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="appSecret">HMAC Secret</label>
+              <input id="appSecret" name="appSecret" type="password" value="secret_dev_livekit_meetling_2026" required />
+            </div>
+            <div class="field">
+              <label for="expiresInMinutes">Ablauf in Minuten</label>
+              <input id="expiresInMinutes" name="expiresInMinutes" type="number" min="1" value="60" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="livekitHost">LiveKit Host</label>
+              <input id="livekitHost" name="livekitHost" type="text" value="livekit-rtc.dev04.h2-invent.com" required />
+            </div>
+            <div class="field">
+              <label for="livekitKey">LiveKit Key</label>
+              <input id="livekitKey" name="livekitKey" type="text" value="key1" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="roomName">Raum</label>
+              <input id="roomName" name="roomName" type="text" value="test_aho" required />
+            </div>
+            <div class="field">
+              <label for="roomDisplayName">Anzeigename des Raums</label>
+              <input id="roomDisplayName" name="roomDisplayName" type="text" value="test_aho" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="userIdentity">Identity</label>
+              <input id="userIdentity" name="userIdentity" type="text" value="andreas_zKeV" required />
+            </div>
+            <div class="field">
+              <label for="userName">Benutzername</label>
+              <input id="userName" name="userName" type="text" value="andreas" required />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="avatarUrl">Avatar</label>
+              <input id="avatarUrl" name="avatarUrl" type="text" value="/images/poc/Jonathan_Archer_2151.webp" />
+            </div>
+            <div class="field">
+              <label for="avatarAwayUrl">Avatar Away</label>
+              <input id="avatarAwayUrl" name="avatarAwayUrl" type="url" value="https://reimar.rocks/captains/Spock_away.jpg" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="skipLobby">skipLobby</label>
+              <select id="skipLobby" name="skipLobby">
+                <option value="false" selected>false</option>
+                <option value="true">true</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="moderator">moderator</label>
+              <select id="moderator" name="moderator">
+                <option value="true" selected>true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="isMicrophoneEnabled">Mikrofon aktiv</label>
+              <select id="isMicrophoneEnabled" name="isMicrophoneEnabled">
+                <option value="false" selected>false</option>
+                <option value="true">true</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="isCameraEnabled">Kamera aktiv</label>
+              <select id="isCameraEnabled" name="isCameraEnabled">
+                <option value="false" selected>false</option>
+                <option value="true">true</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="dialInNumbers">Dial-In Nummern JSON</label>
+            <textarea id="dialInNumbers" name="dialInNumbers" spellcheck="false">{
+  "DE": 41153.7,
+  "CH": 2371.5
+}</textarea>
+          </div>
+
+          <div class="field">
+            <label for="dialInPin">Dial-In PIN</label>
+            <input id="dialInPin" name="dialInPin" type="number" value="42" />
+          </div>
+
+          <div class="field">
+            <label for="backgroundImages">Background Images JSON</label>
+            <textarea id="backgroundImages" name="backgroundImages" spellcheck="false">[
+  {
+    "description": "Im Wald",
+    "url": "/images/backgrounds/pexels-photo-5248775.jpeg"
+  },
+  {
+    "description": "In den Bergen",
+    "url": "/images/backgrounds/pexels-photo-417173.webp"
+  },
+  {
+    "description": "In der Karibik",
+    "url": "/images/backgrounds/pexels-photo-1450353.webp"
+  }
+]</textarea>
+          </div>
+
+          <p class="helper">
+            Hinweis: Das Script aus deinem Beispiel berechnet zwar einen Ablaufzeitpunkt,
+            schreibt ihn aber nicht in den Payload. Dieses POC übernimmt deshalb den gleichen
+            Payload-Stil und fügt <code>exp</code> standardmäßig nicht ein.
+          </p>
+          <p class="helper">
+            Wichtig: Wenn die Token-Factory keine passenden <code>Access-Control-Allow-Origin</code>-Header liefert,
+            blockiert der Browser den Aufruf. Dann brauchst du einen Server-/API-Proxy auf derselben Origin oder die
+            Token-Factory muss CORS freischalten.
+          </p>
+
+          <button id="startButton" type="submit">Konferenz starten</button>
+        </form>
+      </section>
+
+      <section class="panel viewer">
+        <div id="status" class="status">Bereit. Bitte Daten prüfen und Konferenz starten.</div>
+        <iframe id="conferenceFrame" title="LiveKit-Konferenz" allow="camera; microphone; fullscreen; display-capture; autoplay" referrerpolicy="no-referrer"></iframe>
+        <pre id="payloadPreview">Noch kein Payload erzeugt.</pre>
+        <pre id="tokenPreview">Noch kein Token erzeugt.</pre>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById('conference-form');
+      const statusBox = document.getElementById('status');
+      const payloadPreview = document.getElementById('payloadPreview');
+      const tokenPreview = document.getElementById('tokenPreview');
+      const conferenceFrame = document.getElementById('conferenceFrame');
+      const startButton = document.getElementById('startButton');
+      const textEncoder = new TextEncoder();
+
+      const toBase64Url = (input) => {
+        const bytes = typeof input === 'string' ? textEncoder.encode(input) : input;
+        let binary = '';
+        bytes.forEach((byte) => {
+          binary += String.fromCharCode(byte);
+        });
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      };
+
+      const asBoolean = (value) => value === 'true';
+
+      function buildPayload(formData) {
+        const payload = {
+          livekit: {
+            host: formData.get('livekitHost').trim(),
+            key: formData.get('livekitKey').trim()
+          },
+          room: formData.get('roomName').trim(),
+          context: {
+            user: {
+              identity: formData.get('userIdentity').trim(),
+              name: formData.get('userName').trim(),
+              avatar: formData.get('avatarUrl').trim(),
+              avatarAway: formData.get('avatarAwayUrl').trim(),
+              skipLobby: asBoolean(formData.get('skipLobby'))
+            },
+            room: {
+              name: formData.get('roomDisplayName').trim(),
+              dialIn: {
+                numbers: JSON.parse(formData.get('dialInNumbers').trim()),
+                pin: Number(formData.get('dialInPin'))
+              }
+            }
+          },
+          settings: {
+            isMicrophoneEnabled: asBoolean(formData.get('isMicrophoneEnabled')),
+            isCameraEnabled: asBoolean(formData.get('isCameraEnabled'))
+          },
+          moderator: asBoolean(formData.get('moderator')),
+          backgroundImages: JSON.parse(formData.get('backgroundImages').trim())
+        };
+
+        if (!payload.context.user.avatar) {
+          delete payload.context.user.avatar;
+        }
+        if (!payload.context.user.avatarAway) {
+          delete payload.context.user.avatarAway;
+        }
+
+        return payload;
+      }
+
+      async function signJwt(payload, secret) {
+        const header = { alg: 'HS256', typ: 'JWT' };
+        const encodedHeader = toBase64Url(JSON.stringify(header));
+        const encodedPayload = toBase64Url(JSON.stringify(payload));
+        const message = `${encodedHeader}.${encodedPayload}`;
+        const cryptoKey = await crypto.subtle.importKey(
+          'raw',
+          textEncoder.encode(secret),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        );
+        const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, textEncoder.encode(message));
+        const encodedSignature = toBase64Url(new Uint8Array(signatureBuffer));
+        return `${message}.${encodedSignature}`;
+      }
+
+      function buildExchangeUrl(tokenFactoryUrl, corsProxyTemplate) {
+        const proxyTemplate = corsProxyTemplate.trim();
+        if (!proxyTemplate) {
+          return tokenFactoryUrl;
+        }
+        if (proxyTemplate.includes('{url}')) {
+          return proxyTemplate.replace('{url}', encodeURIComponent(tokenFactoryUrl));
+        }
+        const separator = proxyTemplate.includes('?') ? '&' : '?';
+        return `${proxyTemplate}${separator}url=${encodeURIComponent(tokenFactoryUrl)}`;
+      }
+
+      async function exchangeToken(tokenFactoryUrl, initialJwt, corsProxyTemplate) {
+        const exchangeUrl = buildExchangeUrl(tokenFactoryUrl, corsProxyTemplate);
+        const response = await fetch(exchangeUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/plain;q=0.9, */*;q=0.8'
+          },
+          body: JSON.stringify({ token: initialJwt })
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Token-Factory antwortete mit ${response.status}: ${errorBody || response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          return data.url || data.redirectUrl || data.link || data.token || data.jwt || data.accessToken || data.signedToken || '';
+        }
+
+        return (await response.text()).trim();
+      }
+
+      function buildConferenceUrl(baseUrl, jwt) {
+        const url = new URL(baseUrl);
+        url.searchParams.set('jwt', jwt);
+        return url.toString();
+      }
+
+      function resolveIframeUrl(responseValue, fallbackConferenceUrl) {
+        if (/^https?:\/\//i.test(responseValue)) {
+          return responseValue;
+        }
+        return buildConferenceUrl(fallbackConferenceUrl, responseValue);
+      }
+
+      function setStatus(message, state = 'idle') {
+        statusBox.dataset.state = state;
+        statusBox.textContent = message;
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        startButton.disabled = true;
+        conferenceFrame.removeAttribute('src');
+        payloadPreview.textContent = 'Erzeuge Payload…';
+        tokenPreview.textContent = 'Erzeuge initialen JWT…';
+        setStatus('Erzeuge den JWT passend zum Bash-Script…');
+
+        try {
+          const formData = new FormData(form);
+          const expiresAt = Math.floor(Date.now() / 1000) + Number(formData.get('expiresInMinutes')) * 60;
+          const payload = buildPayload(formData);
+          const initialJwt = await signJwt(payload, formData.get('appSecret').trim());
+          const exchangeResponse = await exchangeToken(
+            formData.get('tokenFactoryUrl').trim(),
+            initialJwt,
+            formData.get('corsProxyTemplate').trim()
+          );
+
+          if (!exchangeResponse) {
+            throw new Error('Die Token-Factory hat weder URL noch JWT zurückgegeben.');
+          }
+
+          const iframeUrl = resolveIframeUrl(exchangeResponse, formData.get('conferenceUrl').trim());
+          payloadPreview.textContent = `Payload wie im Script:\n${JSON.stringify(payload, null, 2)}\n\nBerechnetes EXP (nur Anzeige, nicht im Payload):\n${expiresAt}`;
+          tokenPreview.textContent = `Initialer JWT:\n${initialJwt}\n\nAntwort der Token-Factory:\n${exchangeResponse}\n\nIFrame-URL:\n${iframeUrl}`;
+          conferenceFrame.src = iframeUrl;
+          setStatus('JWT erzeugt, an die Token-Factory gesendet und Konferenz im iFrame geladen.', 'success');
+        } catch (error) {
+          console.error(error);
+          const isLikelyCorsError = error instanceof TypeError && /fetch/i.test(error.message);
+          const errorMessage = isLikelyCorsError
+            ? 'Netzwerk-/CORS-Fehler: Der Browser durfte die Token-Factory nicht lesen. Nutze einen Same-Origin-Proxy oder aktiviere CORS auf der Token-Factory.'
+            : error.message;
+          setStatus(`Fehler: ${errorMessage}`, 'error');
+          payloadPreview.textContent = `Fehlerdetails beim Payload-Aufbau:\n${error.stack || error.message}`;
+          tokenPreview.textContent = `Fehlerdetails beim Token-Prozess:\n${error.stack || error.message}`;
+        } finally {
+          startButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
